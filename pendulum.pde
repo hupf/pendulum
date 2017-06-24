@@ -1,17 +1,20 @@
-import processing.video.*;
+/**
+ * Download: https://www.funprogramming.org/VideoExport-for-Processing/
+ */
+
+import com.hamoid.*;
 
 int cycleLength = 60;
 int cycleCount = 2;
 int targetFrameRate = 25;
-int renderFrameRate = 3;
+int renderFrameRate = 25; // Default 3
 
-boolean saveMovie = false;
-boolean saveFrames = true;
+boolean saveMovie = true;
+boolean saveFrames = false;
 
 
-
-MovieMaker mm;
-String movieFile = "movie.mov";
+VideoExport videoExport;
+String movieFile = "pendulum.mp4";
 
 PGraphics pg;
 String filePrefix = "frame-";
@@ -22,11 +25,26 @@ int currentCycle = 0;
 int t = 0;
 
 void setup() {
+  // https://de.wikipedia.org/wiki/Farbenklavier
+  skriabinKeyboard = new IntDict();
+  skriabinKeyboard.set("C", #ff0000);
+  skriabinKeyboard.set("Db", #ce9aff);
+  skriabinKeyboard.set("D", #ffff00);
+  skriabinKeyboard.set("Eb", #656599);
+  skriabinKeyboard.set("E", #e3fbff);
+  skriabinKeyboard.set("F", #ac1c02);
+  skriabinKeyboard.set("Gb", #00ccff);
+  skriabinKeyboard.set("G", #ff6501);
+  skriabinKeyboard.set("Ab", #ff00ff);
+  skriabinKeyboard.set("A", #33cc33);
+  skriabinKeyboard.set("Bb", #8c8a8c);
+  skriabinKeyboard.set("B", #0000fe);
+  
   size(1280, 720);
   frameRate(renderFrameRate);
   if (saveMovie) { 
-    mm = new MovieMaker(this, width, height, movieFile,
-                        targetFrameRate, MovieMaker.H263, MovieMaker.LOSSLESS);
+    videoExport = new VideoExport(this, movieFile);
+    videoExport.startMovie();
   }
 }
 
@@ -55,7 +73,7 @@ void draw() {
   }
   
   if (saveMovie) {
-    mm.addFrame();
+    videoExport.saveFrame();
   }
   
   ++t;
@@ -64,7 +82,7 @@ void draw() {
     currentCycle++;
     if (currentCycle == cycleCount) {
       if (saveMovie) {
-        mm.finish();
+        videoExport.endMovie();
       }
       exit();
     }

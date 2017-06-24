@@ -1,1 +1,4 @@
 /frames*/
+/frame*.png
+*.mp4
+ffmpeg.txt
