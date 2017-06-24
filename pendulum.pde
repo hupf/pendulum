@@ -6,19 +6,20 @@ import com.hamoid.*;
 
 int cycleLength = 60;
 int cycleCount = 2;
-int targetFrameRate = 25;
-int renderFrameRate = 25; // Default 3
+int targetFrameRate = 25; // Used to render movie
+int renderFrameRate = 25; // Used to display on screen (may be set to low value, eg. 3, when saving movie)
 
-boolean saveMovie = true;
+boolean saveMovie = false;
 boolean saveFrames = false;
 
 IntDict skriabinKeyboard;
-int skriabinTime = 6;
-int skriabinStep = 0;
+int skriabinDuration = 6000;
+int skriabinTransition = 1000;
 String[] skriabinBaseProgression =
   { "Db", "D", "B", "Gb", "G", "E", "G", "Gb", "B", "D" };
 String[] skriabinIntervalProgression =
   { "D", "B", "Db", "G", "Eb", "Gb", "Eb", "G", "Db", "B" };
+int skriabinStep = 0;
 
 VideoExport videoExport;
 String movieFile = "pendulum.mp4";
@@ -73,13 +74,19 @@ void draw() {
   float dv = 0.3; // diameter scaling variability
   float d = min(width, height)*ds * (cos(t*2.0*PI)*dv+1.0-dv);
   
-  color bg = skriabinKeyboard.get(skriabinBaseProgression[skriabinStep]);
-  color fg = skriabinKeyboard.get(skriabinIntervalProgression[skriabinStep]);
+  if (duration % skriabinDuration == 0) {
+    ++skriabinStep;
+    if (skriabinStep >= skriabinBaseProgression.length) {
+      skriabinStep = 0;
+    }
+  }
   
-  drawScreen(start, stop, d, duration, t, currentCycle, bg, fg);
+  SkriabinColors colors = getSkriabinColors(duration);
+  
+  drawScreen(start, stop, d, duration, t, currentCycle, colors.base, colors.interval);
   
   if (saveFrames) {
-    drawPGraphics(start, stop, d, duration, t, currentCycle, bg, fg, frameCount);
+    drawPGraphics(start, stop, d, duration, t, currentCycle, frameCount, colors.base, colors.interval);
   }
   
   if (saveMovie) {
@@ -87,13 +94,6 @@ void draw() {
   }
   
   ++t;
-  
-  if (duration % (skriabinTime * 1000) == 0) {
-    ++skriabinStep;
-    if (skriabinStep >= skriabinBaseProgression.length) {
-      skriabinStep = 0;
-    }
-  }
   
   if (duration % (cycleLength*1000) == 0) {
     currentCycle++;
@@ -104,6 +104,34 @@ void draw() {
       exit();
     }
   }
+}
+
+class SkriabinColors { 
+  color base, interval;
+  
+  SkriabinColors(color b, color i) {
+    base = b;
+    interval = i;
+  }
+}
+
+SkriabinColors getSkriabinColors(int duration) {
+  int skriabinTime = duration % skriabinDuration;
+  int nextSkriabinStep = (skriabinStep + 1) % skriabinBaseProgression.length;
+  float transitionPercent = 0;
+  if (skriabinTime >= skriabinDuration - skriabinTransition) {
+    transitionPercent = (skriabinTime - skriabinDuration + skriabinTransition) / float(skriabinTransition);
+  }
+  
+  color base = skriabinKeyboard.get(skriabinBaseProgression[skriabinStep]);
+  color nextBase = skriabinKeyboard.get(skriabinBaseProgression[nextSkriabinStep]);
+  base = lerpColor(base, nextBase, transitionPercent);
+  
+  color interval = skriabinKeyboard.get(skriabinIntervalProgression[skriabinStep]);
+  color nextInterval = skriabinKeyboard.get(skriabinIntervalProgression[nextSkriabinStep]);
+  interval = lerpColor(interval, nextInterval, transitionPercent);
+  
+  return new SkriabinColors(base, interval);
 }
 
 void drawScreen(float start, float stop, float d, int duration, float t, int currentCycle, color bg, color fg) {
