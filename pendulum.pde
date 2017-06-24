@@ -91,6 +91,7 @@ void drawPGraphics(float start, float stop, float d, int duration, float t, int 
   pg = createGraphics(width, height, JAVA2D);
   pg.beginDraw();
   
+//  pg.background(255);
   pg.smooth();
   
   pg.noFill();
