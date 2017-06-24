@@ -14,8 +14,8 @@ MovieMaker mm;
 void setup() {
   size(500, 500);
   frameRate(30);
-//  mm = new MovieMaker(this, width, height, "pendulum5b.mov",
-//                      30, MovieMaker.H263, MovieMaker.HIGH);
+  mm = new MovieMaker(this, width, height, "pendulum5b.mov",
+                      30, MovieMaker.H263, MovieMaker.HIGH);
 }
 
 void draw() {
@@ -23,8 +23,8 @@ void draw() {
   if (currentTime > cycleStart+cycleLength*1000) {
     cycleStart = currentTime;
     cycleCount++;
-    if (cycleCount == 2) {
-//    mm.finish();
+    if (cycleCount == 4) {
+    mm.finish();
       exit();
     }
   }
@@ -34,31 +34,22 @@ void draw() {
   int duration = currentTime-cycleStart;
   float t = float(duration) / float(cycleLength*1000);
   
-  fill(0);
-  text(duration/1000, 10, 10);
-  noFill();
-  
-  int x = 250;
-  int y = 250;
-  float d = 2.0*r;
   float start;
   float stop;
   
-//  start = (cos(t*2.0*PI)-0.5)*PI;
-//  stop = start+0.1;
-  
-  stop = cos(t*2.0*PI)*0.5*PI;
-//  stop = cos(t*2.0*PI+PI)+cos(t*1.5*PI)*PI;
-//  cos(x*2.0*PI)+sin(x*1.0*PI)
-  start=stop-0.1;
 
-  /*if (cycleCount % 2 == 0) {
+
+  if (cycleCount % 2 == 0) {
     start = (cos(t*2.0*PI)-0.5)*PI;
-    stop = cos(t*PI)*0.5*PI;
+    stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
   } else {
-  }*/
+    start = (cos(t*2.0*PI)-0.5)*PI;
+    stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
+  }
   
-//  d = d * cos(t*2.0*PI);
+  float d = 2*r;
+//  float ds = 0.3;
+//  float d = 2*r * (cos(t*2.0*PI)*ds+1.0-ds);
   
   noFill();
   strokeWeight(30);
@@ -67,7 +58,14 @@ void draw() {
   
   arc(cx, cy, d, d, start, stop);
   
+  fill(0);
+  text(duration/1000, 10, 10);
+  text(t, 30, 10);
+  text(start, 150, 10);
+  text(stop, 200, 10);
+  noFill();
+  
   t++;
-//  mm.addFrame();
+  mm.addFrame();
 }
 
