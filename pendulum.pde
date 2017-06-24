@@ -1,45 +1,42 @@
 import processing.video.*;
 
-int cycleLength = 10;
-int cycleCount = 0;
-int cycleStart = 0;
-int t = 0;
+int cycleLength = 60;
+int cycleCount = 2;
+int targetFrameRate = 25;
+int renderFrameRate = 3;
 
-int cx = 250;
-int cy = 250;
-int r = 200;
+boolean saveMovie = false;
+boolean saveFrames = true;
+
+
 
 MovieMaker mm;
+String movieFile = "movie.mov";
+
+PGraphics pg;
+String filePrefix = "frame-";
+String fileExt = ".png";
+
+int cycleStart = 0;
+int currentCycle = 0;
+int t = 0;
 
 void setup() {
-  size(500, 500);
-  frameRate(30);
-  mm = new MovieMaker(this, width, height, "pendulum5b.mov",
-                      30, MovieMaker.H263, MovieMaker.HIGH);
+  size(1280, 720);
+  frameRate(renderFrameRate);
+  if (saveMovie) { 
+    mm = new MovieMaker(this, width, height, movieFile,
+                        targetFrameRate, MovieMaker.H263, MovieMaker.LOSSLESS);
+  }
 }
 
 void draw() {
-  int currentTime = millis();
-  if (currentTime > cycleStart+cycleLength*1000) {
-    cycleStart = currentTime;
-    cycleCount++;
-    if (cycleCount == 2) {
-    mm.finish();
-      exit();
-    }
-  }
-  background(255);
-  smooth();
-  
-  int duration = currentTime-cycleStart;
+  int duration = int(float(frameCount+1) / float(targetFrameRate) * 1000.0) - cycleLength*1000 * currentCycle;
   float t = float(duration) / float(cycleLength*1000);
   
   float start;
   float stop;
-  
-
-
-  if (cycleCount % 2 == 0) {
+  if (currentCycle % 2 == 0) {
     start = (cos(t*2.0*PI)-0.5)*PI;
     stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
   } else {
@@ -47,25 +44,65 @@ void draw() {
     start = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
   }
   
-//  float d = 2*r;
-  float ds = 0.3;
-  float d = 2*r * (cos(t*2.0*PI)*ds+1.0-ds);
+  float ds = 0.8; // diameter scaling ratio
+  float dv = 0.3; // diameter scaling variability
+  float d = min(width, height)*ds * (cos(t*2.0*PI)*dv+1.0-dv);
+  
+  drawScreen(start, stop, d, duration, t, currentCycle);
+  
+  if (saveFrames) {
+    drawPGraphics(start, stop, d, duration, t, currentCycle, frameCount);
+  }
+  
+  if (saveMovie) {
+    mm.addFrame();
+  }
+  
+  ++t;
+  
+  if (duration % (cycleLength*1000) == 0) {
+    currentCycle++;
+    if (currentCycle == cycleCount) {
+      if (saveMovie) {
+        mm.finish();
+      }
+      exit();
+    }
+  }
+}
+
+void drawScreen(float start, float stop, float d, int duration, float t, int currentCycle) {
+  background(255);
+  smooth();
   
   noFill();
-  strokeWeight(30);
+  strokeWeight(min(width, height)*0.06);
   strokeCap(SQUARE);
   stroke(0);
   
-  arc(cx, cy, d, d, start, stop);
+  arc(width/2.0, height/2.0, d, d, start, stop);
   
   fill(0);
-  text(duration/1000, 10, 10);
-  text(t, 30, 10);
-  text(start, 150, 10);
-  text(stop, 200, 10);
+  text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
   noFill();
-  
-  t++;
-  mm.addFrame();
 }
 
+void drawPGraphics(float start, float stop, float d, int duration, float t, int currentCycle, int currentFrame) {
+  pg = createGraphics(width, height, JAVA2D);
+  pg.beginDraw();
+  
+  pg.smooth();
+  
+  pg.noFill();
+  pg.strokeWeight(min(width, height)*0.06);
+  pg.strokeCap(SQUARE);
+  pg.stroke(0);
+  
+  pg.arc(width/2.0, height/2.0, d, d, start, stop);
+  
+  pg.fill(0);
+  pg.text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
+  pg.noFill();
+  
+  pg.save(filePrefix+ nf(currentFrame,5) +fileExt);
+}
