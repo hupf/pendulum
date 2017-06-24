@@ -23,7 +23,7 @@ void draw() {
   if (currentTime > cycleStart+cycleLength*1000) {
     cycleStart = currentTime;
     cycleCount++;
-    if (cycleCount == 4) {
+    if (cycleCount == 2) {
     mm.finish();
       exit();
     }
@@ -43,13 +43,13 @@ void draw() {
     start = (cos(t*2.0*PI)-0.5)*PI;
     stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
   } else {
-    start = (cos(t*2.0*PI)-0.5)*PI;
-    stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
+    stop = (cos(t*2.0*PI)-0.5)*PI+2*PI;
+    start = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
   }
   
-  float d = 2*r;
-//  float ds = 0.3;
-//  float d = 2*r * (cos(t*2.0*PI)*ds+1.0-ds);
+//  float d = 2*r;
+  float ds = 0.3;
+  float d = 2*r * (cos(t*2.0*PI)*ds+1.0-ds);
   
   noFill();
   strokeWeight(30);
