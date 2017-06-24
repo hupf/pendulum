@@ -12,6 +12,13 @@ int renderFrameRate = 25; // Default 3
 boolean saveMovie = true;
 boolean saveFrames = false;
 
+IntDict skriabinKeyboard;
+int skriabinTime = 6;
+int skriabinStep = 0;
+String[] skriabinBaseProgression =
+  { "Db", "D", "B", "Gb", "G", "E", "G", "Gb", "B", "D" };
+String[] skriabinIntervalProgression =
+  { "D", "B", "Db", "G", "Eb", "Gb", "Eb", "G", "Db", "B" };
 
 VideoExport videoExport;
 String movieFile = "pendulum.mp4";
@@ -66,10 +73,13 @@ void draw() {
   float dv = 0.3; // diameter scaling variability
   float d = min(width, height)*ds * (cos(t*2.0*PI)*dv+1.0-dv);
   
-  drawScreen(start, stop, d, duration, t, currentCycle);
+  color bg = skriabinKeyboard.get(skriabinBaseProgression[skriabinStep]);
+  color fg = skriabinKeyboard.get(skriabinIntervalProgression[skriabinStep]);
+  
+  drawScreen(start, stop, d, duration, t, currentCycle, bg, fg);
   
   if (saveFrames) {
-    drawPGraphics(start, stop, d, duration, t, currentCycle, frameCount);
+    drawPGraphics(start, stop, d, duration, t, currentCycle, bg, fg, frameCount);
   }
   
   if (saveMovie) {
@@ -77,6 +87,13 @@ void draw() {
   }
   
   ++t;
+  
+  if (duration % (skriabinTime * 1000) == 0) {
+    ++skriabinStep;
+    if (skriabinStep >= skriabinBaseProgression.length) {
+      skriabinStep = 0;
+    }
+  }
   
   if (duration % (cycleLength*1000) == 0) {
     currentCycle++;
@@ -89,37 +106,37 @@ void draw() {
   }
 }
 
-void drawScreen(float start, float stop, float d, int duration, float t, int currentCycle) {
-  background(255);
+void drawScreen(float start, float stop, float d, int duration, float t, int currentCycle, color bg, color fg) {
+  background(bg);
   smooth();
   
   noFill();
   strokeWeight(min(width, height)*0.06);
   strokeCap(SQUARE);
-  stroke(0);
+  stroke(fg);
   
   arc(width/2.0, height/2.0, d, d, start, stop);
   
-  fill(0);
+  fill(fg);
   text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
   noFill();
 }
 
-void drawPGraphics(float start, float stop, float d, int duration, float t, int currentCycle, int currentFrame) {
+void drawPGraphics(float start, float stop, float d, int duration, float t, int currentCycle, int currentFrame, color bg, color fg) {
   pg = createGraphics(width, height, JAVA2D);
   pg.beginDraw();
   
-//  pg.background(255);
+//  pg.background(bg);
   pg.smooth();
   
   pg.noFill();
   pg.strokeWeight(min(width, height)*0.06);
   pg.strokeCap(SQUARE);
-  pg.stroke(0);
+  pg.stroke(fg);
   
   pg.arc(width/2.0, height/2.0, d, d, start, stop);
   
-  pg.fill(0);
+  pg.fill(fg);
   pg.text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
   pg.noFill();
   
