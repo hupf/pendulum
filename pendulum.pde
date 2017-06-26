@@ -5,13 +5,17 @@
 import com.hamoid.*;
 
 static class PLSettings {
-  static int cycleLength = 60;
+  static int cycleLength = 60000; // ms
   static int cycleCount = 2;
-
+  
   static boolean displayCaption = true;
+  
+  static float maxStrokeWeight = 45.0;
+  static float minStrokeWeight = 10.0;
+  static int strokeWeightCycle = 30000 * 2; // ms
 
-  static int skriabinDuration = 6000;
-  static int skriabinTransition = 1000;
+  static int skriabinDuration = 6000; // ms
+  static int skriabinTransition = 3000; // ms
   static String[] skriabinBaseProgression =
     { "Db", "D", "B", "Gb", "G", "E", "G", "Gb", "B", "D" };
   static String[] skriabinIntervalProgression =
@@ -68,8 +72,8 @@ void setup() {
 
 void draw() {
   int duration = int(float(frameCount + 1) / float(PLSettings.targetFrameRate) * 1000.0)
-    - PLSettings.cycleLength * 1000 * currentCycle;
-  float t = float(duration) / float(PLSettings.cycleLength * 1000);
+    - PLSettings.cycleLength * currentCycle;
+  float t = float(duration) / float(PLSettings.cycleLength);
 
   float start;
   float stop;
@@ -84,6 +88,15 @@ void draw() {
   float ds = 0.8; // diameter scaling ratio
   float dv = 0.3; // diameter scaling variability
   float d = min(width, height) * ds * (cos(t * 2.0 * PI) * dv + 1.0 - dv);
+  
+  int strokeWeightDuration;
+  if ((duration % PLSettings.strokeWeightCycle * 2) < PLSettings.strokeWeightCycle) {
+    strokeWeightDuration = duration % PLSettings.strokeWeightCycle;
+  } else {
+    strokeWeightDuration = PLSettings.strokeWeightCycle - (duration % PLSettings.strokeWeightCycle);
+  }
+  float stroke = strokeWeightDuration / float(PLSettings.strokeWeightCycle) * 2.0
+    * (PLSettings.maxStrokeWeight - PLSettings.minStrokeWeight) + PLSettings.minStrokeWeight;
 
   if (duration % PLSettings.skriabinDuration == 0) {
     ++skriabinStep;
@@ -92,7 +105,8 @@ void draw() {
     }
   }
   
-  new PLRenderer(this.g).renderFrame(start, stop, d, duration, t, currentCycle);
+  new PLRenderer(this.g).renderFrame(start, stop, d, stroke,
+                                     duration, t, currentCycle);
 
   if (PLSettings.saveMovie) {
     videoExport.saveFrame();
@@ -101,13 +115,14 @@ void draw() {
   if (PLSettings.saveFrames) {
     pg = createGraphics(width, height, JAVA2D);
     pg.beginDraw();
-    new PLRenderer(pg).renderFrame(start, stop, d, duration, t, currentCycle);
+    new PLRenderer(pg).renderFrame(start, stop, d, stroke,
+                                   duration, t, currentCycle);
     pg.save(PLSettings.framePrefix + nf(frameCount, 5) + PLSettings.frameExt);
   }
 
   ++t;
 
-  if (duration % (PLSettings.cycleLength * 1000) == 0) {
+  if (duration % (PLSettings.cycleLength) == 0) {
     currentCycle++;
     if (currentCycle == PLSettings.cycleCount) {
       if (PLSettings.saveMovie) {
@@ -126,7 +141,8 @@ class PLRenderer {
     this.g = g;
   }
 
-  void renderFrame(float start, float stop, float d, int duration, float t, int currentCycle) {
+  void renderFrame(float start, float stop, float d, float stroke,
+                   int duration, float t, int currentCycle) {
     SkriabinColors colors = getSkriabinColors(duration);
     color bg = colors.base;
     color fg = colors.interval;
@@ -135,7 +151,8 @@ class PLRenderer {
     this.g.smooth();
 
     this.g.noFill();
-    this.g.strokeWeight(min(width, height) * 0.06);
+    //this.g.strokeWeight(min(width, height) * 0.06);
+    this.g.strokeWeight(stroke);
     this.g.strokeCap(SQUARE);
     this.g.stroke(fg);
 
