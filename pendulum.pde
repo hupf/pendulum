@@ -4,35 +4,52 @@
 
 import com.hamoid.*;
 
-int cycleLength = 60;
-int cycleCount = 2;
-int targetFrameRate = 25; // Used to render movie
-int renderFrameRate = 25; // Used to display on screen (may be set to low value, eg. 3, when saving movie)
+static class PLSettings {
+  static int cycleLength = 60;
+  static int cycleCount = 2;
 
-boolean saveMovie = false;
-boolean saveFrames = false;
+  static boolean displayCaption = true;
 
-IntDict skriabinKeyboard;
-int skriabinDuration = 6000;
-int skriabinTransition = 1000;
-String[] skriabinBaseProgression =
-  { "Db", "D", "B", "Gb", "G", "E", "G", "Gb", "B", "D" };
-String[] skriabinIntervalProgression =
-  { "D", "B", "Db", "G", "Eb", "Gb", "Eb", "G", "Db", "B" };
-int skriabinStep = 0;
+  static int skriabinDuration = 6000;
+  static int skriabinTransition = 1000;
+  static String[] skriabinBaseProgression =
+    { "Db", "D", "B", "Gb", "G", "E", "G", "Gb", "B", "D" };
+  static String[] skriabinIntervalProgression =
+    { "D", "B", "Db", "G", "Eb", "Gb", "Eb", "G", "Db", "B" };
+
+  // Used to render frames/movie
+  static int targetFrameRate = 25;
+
+  // Used to display on screen
+  // (may be set to low value, eg. 3, when saving movie/frames)
+  static int renderFrameRate = 25;
+
+  static boolean saveMovie = false;
+  static String movieFile = "pendulum.mp4";
+
+  static boolean saveFrames = false;
+  static String framePrefix = "frame-";
+  static String frameExt = ".png";
+}
 
 VideoExport videoExport;
-String movieFile = "pendulum.mp4";
-
 PGraphics pg;
-String filePrefix = "frame-";
-String fileExt = ".png";
 
 int cycleStart = 0;
 int currentCycle = 0;
 int t = 0;
+IntDict skriabinKeyboard;
+int skriabinStep = 0;
 
 void setup() {
+  size(1280, 720);
+  frameRate(PLSettings.renderFrameRate);
+
+  if (PLSettings.saveMovie) { 
+    videoExport = new VideoExport(this, PLSettings.movieFile);
+    videoExport.startMovie();
+  }
+
   // https://de.wikipedia.org/wiki/Farbenklavier
   skriabinKeyboard = new IntDict();
   skriabinKeyboard.set("C", #ff0000);
@@ -47,58 +64,53 @@ void setup() {
   skriabinKeyboard.set("A", #33cc33);
   skriabinKeyboard.set("Bb", #8c8a8c);
   skriabinKeyboard.set("B", #0000fe);
-  
-  size(1280, 720);
-  frameRate(renderFrameRate);
-  if (saveMovie) { 
-    videoExport = new VideoExport(this, movieFile);
-    videoExport.startMovie();
-  }
 }
 
 void draw() {
-  int duration = int(float(frameCount+1) / float(targetFrameRate) * 1000.0) - cycleLength*1000 * currentCycle;
-  float t = float(duration) / float(cycleLength*1000);
-  
+  int duration = int(float(frameCount + 1) / float(PLSettings.targetFrameRate) * 1000.0)
+    - PLSettings.cycleLength * 1000 * currentCycle;
+  float t = float(duration) / float(PLSettings.cycleLength * 1000);
+
   float start;
   float stop;
   if (currentCycle % 2 == 0) {
-    start = (cos(t*2.0*PI)-0.5)*PI;
-    stop = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
+    start = (cos(t * 2.0 * PI) - 0.5) * PI;
+    stop = -sin(t * t * 1.5 * PI) * 2 * PI * t + 0.5 * PI;
   } else {
-    stop = (cos(t*2.0*PI)-0.5)*PI+2*PI;
-    start = -sin(t*t*1.5*PI)*2*PI*t +0.5*PI;
+    stop = (cos(t * 2.0 * PI) - 0.5) * PI + 2 * PI;
+    start = -sin(t * t * 1.5 * PI) * 2 * PI * t + 0.5 * PI;
   }
-  
+
   float ds = 0.8; // diameter scaling ratio
   float dv = 0.3; // diameter scaling variability
-  float d = min(width, height)*ds * (cos(t*2.0*PI)*dv+1.0-dv);
-  
-  if (duration % skriabinDuration == 0) {
+  float d = min(width, height) * ds * (cos(t * 2.0 * PI) * dv + 1.0 - dv);
+
+  if (duration % PLSettings.skriabinDuration == 0) {
     ++skriabinStep;
-    if (skriabinStep >= skriabinBaseProgression.length) {
+    if (skriabinStep >= PLSettings.skriabinBaseProgression.length) {
       skriabinStep = 0;
     }
   }
   
-  SkriabinColors colors = getSkriabinColors(duration);
-  
-  drawScreen(start, stop, d, duration, t, currentCycle, colors.base, colors.interval);
-  
-  if (saveFrames) {
-    drawPGraphics(start, stop, d, duration, t, currentCycle, frameCount, colors.base, colors.interval);
-  }
-  
-  if (saveMovie) {
+  new PLRenderer(this.g).renderFrame(start, stop, d, duration, t, currentCycle);
+
+  if (PLSettings.saveMovie) {
     videoExport.saveFrame();
   }
-  
+
+  if (PLSettings.saveFrames) {
+    pg = createGraphics(width, height, JAVA2D);
+    pg.beginDraw();
+    new PLRenderer(pg).renderFrame(start, stop, d, duration, t, currentCycle);
+    pg.save(PLSettings.framePrefix + nf(frameCount, 5) + PLSettings.frameExt);
+  }
+
   ++t;
-  
-  if (duration % (cycleLength*1000) == 0) {
+
+  if (duration % (PLSettings.cycleLength * 1000) == 0) {
     currentCycle++;
-    if (currentCycle == cycleCount) {
-      if (saveMovie) {
+    if (currentCycle == PLSettings.cycleCount) {
+      if (PLSettings.saveMovie) {
         videoExport.endMovie();
       }
       exit();
@@ -106,67 +118,71 @@ void draw() {
   }
 }
 
+
+class PLRenderer {
+  private PGraphics g;
+
+  PLRenderer(PGraphics g) {
+    this.g = g;
+  }
+
+  void renderFrame(float start, float stop, float d, int duration, float t, int currentCycle) {
+    SkriabinColors colors = getSkriabinColors(duration);
+    color bg = colors.base;
+    color fg = colors.interval;
+    
+    this.g.background(bg);
+    this.g.smooth();
+
+    this.g.noFill();
+    this.g.strokeWeight(min(width, height) * 0.06);
+    this.g.strokeCap(SQUARE);
+    this.g.stroke(fg);
+
+    this.g.arc(width/2.0, height/2.0, d, d, start, stop);
+
+    if (PLSettings.displayCaption) {
+      this.g.fill(fg);
+      String[] captionValues = {
+        nf(currentCycle, 2), 
+        nf(duration/1000, 2), 
+        nf(t, 1, 3), 
+        nf(start, 1, 3), 
+        nf(stop, 1, 3), 
+        nf(d, 3, 3)
+      };
+      this.g.text(join(captionValues, "   "), 0, 10);
+      this.g.noFill();
+    }
+  }
+  
+  private SkriabinColors getSkriabinColors(int duration) {
+    int skriabinTime = duration % PLSettings.skriabinDuration;
+    int nextSkriabinStep = (skriabinStep + 1) % PLSettings.skriabinBaseProgression.length;
+    float transitionPercent = 0;
+    if (skriabinTime >= PLSettings.skriabinDuration - PLSettings.skriabinTransition) {
+      transitionPercent = (skriabinTime - PLSettings.skriabinDuration + PLSettings.skriabinTransition)
+        / float(PLSettings.skriabinTransition);
+    }
+  
+    color base = skriabinKeyboard.get(PLSettings.skriabinBaseProgression[skriabinStep]);
+    color nextBase = skriabinKeyboard.get(PLSettings.skriabinBaseProgression[nextSkriabinStep]);
+    base = lerpColor(base, nextBase, transitionPercent);
+  
+    color interval = skriabinKeyboard.get(PLSettings.skriabinIntervalProgression[skriabinStep]);
+    color nextInterval = skriabinKeyboard.get(PLSettings.skriabinIntervalProgression[nextSkriabinStep]);
+    interval = lerpColor(interval, nextInterval, transitionPercent);
+  
+    return new SkriabinColors(base, interval);
+  }
+  
+}
+
 class SkriabinColors { 
   color base, interval;
-  
+
   SkriabinColors(color b, color i) {
     base = b;
     interval = i;
   }
-}
-
-SkriabinColors getSkriabinColors(int duration) {
-  int skriabinTime = duration % skriabinDuration;
-  int nextSkriabinStep = (skriabinStep + 1) % skriabinBaseProgression.length;
-  float transitionPercent = 0;
-  if (skriabinTime >= skriabinDuration - skriabinTransition) {
-    transitionPercent = (skriabinTime - skriabinDuration + skriabinTransition) / float(skriabinTransition);
-  }
-  
-  color base = skriabinKeyboard.get(skriabinBaseProgression[skriabinStep]);
-  color nextBase = skriabinKeyboard.get(skriabinBaseProgression[nextSkriabinStep]);
-  base = lerpColor(base, nextBase, transitionPercent);
-  
-  color interval = skriabinKeyboard.get(skriabinIntervalProgression[skriabinStep]);
-  color nextInterval = skriabinKeyboard.get(skriabinIntervalProgression[nextSkriabinStep]);
-  interval = lerpColor(interval, nextInterval, transitionPercent);
-  
-  return new SkriabinColors(base, interval);
-}
-
-void drawScreen(float start, float stop, float d, int duration, float t, int currentCycle, color bg, color fg) {
-  background(bg);
-  smooth();
-  
-  noFill();
-  strokeWeight(min(width, height)*0.06);
-  strokeCap(SQUARE);
-  stroke(fg);
-  
-  arc(width/2.0, height/2.0, d, d, start, stop);
-  
-  fill(fg);
-  text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
-  noFill();
-}
-
-void drawPGraphics(float start, float stop, float d, int duration, float t, int currentCycle, int currentFrame, color bg, color fg) {
-  pg = createGraphics(width, height, JAVA2D);
-  pg.beginDraw();
-  
-//  pg.background(bg);
-  pg.smooth();
-  
-  pg.noFill();
-  pg.strokeWeight(min(width, height)*0.06);
-  pg.strokeCap(SQUARE);
-  pg.stroke(fg);
-  
-  pg.arc(width/2.0, height/2.0, d, d, start, stop);
-  
-  pg.fill(fg);
-  pg.text(nf(currentCycle, 2)+"   "+nf(duration/1000, 2)+"   "+nf(t, 1, 3)+"   "+nf(start, 1, 3)+"   "+nf(stop, 1, 3)+"   "+nf(d, 3, 3), 0, 10);
-  pg.noFill();
-  
-  pg.save(filePrefix+ nf(currentFrame,5) +fileExt);
 }
