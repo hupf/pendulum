@@ -10,7 +10,7 @@ static class PLSettings {
   
   static boolean displayCaption = true;
   
-  static float maxStrokeWeight = 45.0;
+  static float maxStrokeWeight = 70.0;
   static float minStrokeWeight = 10.0;
   static int strokeWeightCycle = 30000 * 2; // ms
 
