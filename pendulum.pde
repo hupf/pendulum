@@ -7,9 +7,9 @@ import com.hamoid.*;
 static class PLSettings {
   static int cycleLength = 60000; // ms
   static int cycleCount = 2;
-  
-  static boolean displayCaption = true;
-  
+
+  static boolean displayCaption = false;
+
   static float maxStrokeWeight = 70.0;
   static float minStrokeWeight = 10.0;
   static int strokeWeightCycle = 30000 * 2; // ms
@@ -30,6 +30,7 @@ static class PLSettings {
 
   static boolean saveMovie = false;
   static String movieFile = "pendulum.mp4";
+  static int videoQuality = 100;
 
   static boolean saveFrames = false;
   static String framePrefix = "frame-";
@@ -46,11 +47,14 @@ IntDict skriabinKeyboard;
 int skriabinStep = 0;
 
 void setup() {
-  size(1280, 720);
+  //size(1280, 720);
+  size(1920, 1080);
   frameRate(PLSettings.renderFrameRate);
 
-  if (PLSettings.saveMovie) { 
+  if (PLSettings.saveMovie) {
     videoExport = new VideoExport(this, PLSettings.movieFile);
+    videoExport.setQuality(PLSettings.videoQuality, 0);
+    videoExport.setFrameRate(PLSettings.targetFrameRate);
     videoExport.startMovie();
   }
 
@@ -88,7 +92,7 @@ void draw() {
   float ds = 0.8; // diameter scaling ratio
   float dv = 0.3; // diameter scaling variability
   float d = min(width, height) * ds * (cos(t * 2.0 * PI) * dv + 1.0 - dv);
-  
+
   int strokeWeightDuration;
   if ((duration % PLSettings.strokeWeightCycle * 2) < PLSettings.strokeWeightCycle) {
     strokeWeightDuration = duration % PLSettings.strokeWeightCycle;
@@ -104,7 +108,7 @@ void draw() {
       skriabinStep = 0;
     }
   }
-  
+
   new PLRenderer(this.g).renderFrame(start, stop, d, stroke,
                                      duration, t, currentCycle);
 
@@ -146,7 +150,7 @@ class PLRenderer {
     SkriabinColors colors = getSkriabinColors(duration);
     color bg = colors.base;
     color fg = colors.interval;
-    
+
     this.g.background(bg);
     this.g.smooth();
 
@@ -161,18 +165,18 @@ class PLRenderer {
     if (PLSettings.displayCaption) {
       this.g.fill(fg);
       String[] captionValues = {
-        nf(currentCycle, 2), 
-        nf(duration/1000, 2), 
-        nf(t, 1, 3), 
-        nf(start, 1, 3), 
-        nf(stop, 1, 3), 
+        nf(currentCycle, 2),
+        nf(duration/1000, 2),
+        nf(t, 1, 3),
+        nf(start, 1, 3),
+        nf(stop, 1, 3),
         nf(d, 3, 3)
       };
       this.g.text(join(captionValues, "   "), 0, 10);
       this.g.noFill();
     }
   }
-  
+
   private SkriabinColors getSkriabinColors(int duration) {
     int skriabinTime = duration % PLSettings.skriabinDuration;
     int nextSkriabinStep = (skriabinStep + 1) % PLSettings.skriabinBaseProgression.length;
@@ -181,21 +185,21 @@ class PLRenderer {
       transitionPercent = (skriabinTime - PLSettings.skriabinDuration + PLSettings.skriabinTransition)
         / float(PLSettings.skriabinTransition);
     }
-  
+
     color base = skriabinKeyboard.get(PLSettings.skriabinBaseProgression[skriabinStep]);
     color nextBase = skriabinKeyboard.get(PLSettings.skriabinBaseProgression[nextSkriabinStep]);
     base = lerpColor(base, nextBase, transitionPercent);
-  
+
     color interval = skriabinKeyboard.get(PLSettings.skriabinIntervalProgression[skriabinStep]);
     color nextInterval = skriabinKeyboard.get(PLSettings.skriabinIntervalProgression[nextSkriabinStep]);
     interval = lerpColor(interval, nextInterval, transitionPercent);
-  
+
     return new SkriabinColors(base, interval);
   }
-  
+
 }
 
-class SkriabinColors { 
+class SkriabinColors {
   color base, interval;
 
   SkriabinColors(color b, color i) {
